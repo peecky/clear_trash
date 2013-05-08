@@ -6,6 +6,12 @@ import sqlite3
 import time
 import shutil
 import glob
+import argparse
+import datetime
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-l", "--fileinfo", help="show information of files in the Trash", action="store_true")
+args = parser.parse_args()
 
 homePath = os.path.expanduser('~') + '/'
 tableName = 'clear_trash'
@@ -31,6 +37,13 @@ def pathSize(path):
 	else:
 		return os.path.getsize(path)
 
+def sizeof_fmt(num):
+	for x in ['B','KB','MB','GB']:
+		if num < 1024.0 and num > -1024.0:
+			return "%3.1f%s" % (num, x)
+		num /= 1024.0
+	return "%3.1f%s" % (num, 'TB')
+
 # init and load config
 config = ConfigParser.SafeConfigParser({
 	'trashPath': homePath + '.Trash/',
@@ -55,47 +68,54 @@ c.execute('create table if not exists ' + tableName +
 	addedTime int NOT NULL)''')
 conn.commit()
 
-# delete very old files
-c.execute('select path from ' + tableName + ' where addedTime < ?', (currentTime - (maxDuration*86400),))
-veryOldFiles = c.fetchall()
-if len(veryOldFiles) > 0:
-	for row in veryOldFiles:
-		deletePath(trashPath + str(row[0]))
-	c.executemany('delete from ' + tableName + ' where path = ?', veryOldFiles)
-	conn.commit()
-
-# delete old files if the disk has low empty space
-c.execute('select path, size from ' + tableName + ' where addedTime < ? order by addedTime', (currentTime - (minDuration*86400),))
-oldFiles = c.fetchall()
-if len(oldFiles) > 0:
-	stat = os.statvfs(trashPath)
-	emptySpace = stat.f_bavail * stat.f_frsize
-	c.execute('select sum(size) from ' + tableName)
-	trashSize = c.fetchone()[0]
-	deletedFiles = []
-	for filepath, filesize in oldFiles:
-		if emptySpace > trashSize:
-			break
-		deletePath(trashPath + str(filepath))
-		emptySpace += filesize
-		trashSize -= filesize
-		deletedFiles.append((filepath,))
-	if len(deletedFiles) > 0:
-		c.executemany('delete from ' + tableName + ' where path = ?', deletedFiles)
+if args.fileinfo:
+	c.execute('select addedTime, size, path from %s order by addedTime, path' % tableName)
+	filesInfo = c.fetchall()
+	print '%10s %8s %s' % ('added at', 'size', 'file name')
+	for addedTime, size, path in filesInfo:
+		print '%s %8s %s' % (datetime.datetime.fromtimestamp(addedTime).strftime('%Y-%m-%d'), sizeof_fmt(size), str(path))
+else:
+	# delete very old files
+	c.execute('select path from ' + tableName + ' where addedTime < ?', (currentTime - (maxDuration*86400),))
+	veryOldFiles = c.fetchall()
+	if len(veryOldFiles) > 0:
+		for row in veryOldFiles:
+			deletePath(trashPath + str(row[0]))
+		c.executemany('delete from ' + tableName + ' where path = ?', veryOldFiles)
 		conn.commit()
 
-# add new files
-os.chdir(trashPath)
-filesInTrash = glob.glob('*')
-filesInDB = []
-for row in c.execute('select path from ' + tableName):
-	filesInDB.append(str(row[0]))
-newFiles = list(set(filesInTrash) - set(filesInDB))
-newFilesData = []
-for filepath in newFiles:
-	filesize = pathSize(trashPath + filepath)
-	newFilesData.append((sqlite3.Binary(filepath), filesize, currentTime))
-c.executemany('insert into ' + tableName + ' values (?,?,?)', newFilesData)
-conn.commit()
+	# delete old files if the disk has low empty space
+	c.execute('select path, size from ' + tableName + ' where addedTime < ? order by addedTime', (currentTime - (minDuration*86400),))
+	oldFiles = c.fetchall()
+	if len(oldFiles) > 0:
+		stat = os.statvfs(trashPath)
+		emptySpace = stat.f_bavail * stat.f_frsize
+		c.execute('select sum(size) from ' + tableName)
+		trashSize = c.fetchone()[0]
+		deletedFiles = []
+		for filepath, filesize in oldFiles:
+			if emptySpace > trashSize:
+				break
+			deletePath(trashPath + str(filepath))
+			emptySpace += filesize
+			trashSize -= filesize
+			deletedFiles.append((filepath,))
+		if len(deletedFiles) > 0:
+			c.executemany('delete from ' + tableName + ' where path = ?', deletedFiles)
+			conn.commit()
+
+	# add new files
+	os.chdir(trashPath)
+	filesInTrash = glob.glob('*')
+	filesInDB = []
+	for row in c.execute('select path from ' + tableName):
+		filesInDB.append(str(row[0]))
+	newFiles = list(set(filesInTrash) - set(filesInDB))
+	newFilesData = []
+	for filepath in newFiles:
+		filesize = pathSize(trashPath + filepath)
+		newFilesData.append((sqlite3.Binary(filepath), filesize, currentTime))
+	c.executemany('insert into ' + tableName + ' values (?,?,?)', newFilesData)
+	conn.commit()
 
 conn.close()
