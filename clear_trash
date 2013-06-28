@@ -106,9 +106,8 @@ else:
 
 	# add new files
 	os.chdir(trashPath)
-	hiddenFilesInTrash = set(glob.glob('.*'))
-	hiddenFilesInTrash.discard('.DS_Store')	# ignore the .DS_Store file for MacOS
-	filesInTrash = set(glob.glob('*')) | hiddenFilesInTrash
+	filesInTrash = set(glob.glob('.*') + glob.glob('*'))
+	filesInTrash.discard('.DS_Store')	# ignore the .DS_Store file for MacOS
 	filesInDB = set([])
 	for row in c.execute('select path from ' + tableName):
 		filesInDB.add(str(row[0]))
