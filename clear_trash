@@ -8,6 +8,7 @@ import shutil
 import glob
 import argparse
 import datetime
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--fileinfo", help="show information of files in the Trash", action="store_true")
@@ -21,7 +22,11 @@ def deletePath(path):
 	if os.path.islink(path) or os.path.isfile(path):
 		os.unlink(path)
 	elif os.path.isdir(path):
-		shutil.rmtree(path)
+		try:
+			shutil.rmtree(path)
+		except OSError, e:
+			shutil.rmtree(path, True)
+			sys.stderr.write('Cannot delete %s\n' % (path,))
 
 def pathSize(path):
 	if os.path.islink(path):
