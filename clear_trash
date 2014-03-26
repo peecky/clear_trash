@@ -44,10 +44,13 @@ def pathSize(path):
         return os.path.getsize(path)
 
 def sizeof_fmt(num):
-    for x in ['B','KB','MB','GB']:
+    if num < 1024 and num > -1024:
+        return '%dB' % (num,)
+    for x in ['KB', 'MB', 'GB']:
+        num /= 1024.0
         if num < 1024.0 and num > -1024.0:
             return "%3.1f%s" % (num, x)
-        num /= 1024.0
+    num /= 1024.0
     return "%3.1f%s" % (num, 'TB')
 
 # init and load config
