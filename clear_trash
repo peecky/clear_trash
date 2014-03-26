@@ -20,42 +20,42 @@ tableName = 'clear_trash'
 currentTime = long(time.time())
 
 def deletePath(path):
-	if os.path.islink(path) or os.path.isfile(path):
-		os.unlink(path)
-	elif os.path.isdir(path):
-		try:
-			shutil.rmtree(path)
-		except OSError, e:
-			shutil.rmtree(path, True)
-			sys.stderr.write('Cannot delete %s\n' % (path,))
+    if os.path.islink(path) or os.path.isfile(path):
+        os.unlink(path)
+    elif os.path.isdir(path):
+        try:
+            shutil.rmtree(path)
+        except OSError, e:
+            shutil.rmtree(path, True)
+            sys.stderr.write('Cannot delete %s\n' % (path,))
 
 def pathSize(path):
-	if os.path.islink(path):
-		return 0
-	elif os.path.isdir(path):
-		total_size = 0
-		for dirpath, dirnames, filenames in os.walk(path):
-			for f in filenames:
-				fp = os.path.join(dirpath, f)
-				if not os.path.islink(fp):
-					total_size += os.path.getsize(fp)
-		return total_size
-	else:
-		return os.path.getsize(path)
+    if os.path.islink(path):
+        return 0
+    elif os.path.isdir(path):
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                if not os.path.islink(fp):
+                    total_size += os.path.getsize(fp)
+        return total_size
+    else:
+        return os.path.getsize(path)
 
 def sizeof_fmt(num):
-	for x in ['B','KB','MB','GB']:
-		if num < 1024.0 and num > -1024.0:
-			return "%3.1f%s" % (num, x)
-		num /= 1024.0
-	return "%3.1f%s" % (num, 'TB')
+    for x in ['B','KB','MB','GB']:
+        if num < 1024.0 and num > -1024.0:
+            return "%3.1f%s" % (num, x)
+        num /= 1024.0
+    return "%3.1f%s" % (num, 'TB')
 
 # init and load config
 config = ConfigParser.SafeConfigParser({
-	'trashPath': homePath + '.Trash/',
-	'minDuration': '30',
-	'maxDuration': '100',
-	'dbFilePath': homePath + '.clear_trash.db'
+    'trashPath': homePath + '.Trash/',
+    'minDuration': '30',
+    'maxDuration': '100',
+    'dbFilePath': homePath + '.clear_trash.db'
 })
 config.read(homePath + '.clear_trash.cfg')
 trashPath = config.get('DEFAULT', 'trashPath')
@@ -63,68 +63,68 @@ minDuration = config.getint('DEFAULT', 'minDuration')
 maxDuration = config.getint('DEFAULT', 'maxDuration')
 dbFilePath = config.get('DEFAULT', 'dbFilePath')
 if trashPath[-1] != '/':
-	trashPath += '/'
+    trashPath += '/'
 
 # init and load database
 conn = sqlite3.connect(dbFilePath)
 c = conn.cursor()
 c.execute('create table if not exists ' + tableName +
-	''' (path BLOB NOT NULL PRIMARY KEY,
-	size int NOT NULL,
-	addedTime int NOT NULL)''')
+    ''' (path BLOB NOT NULL PRIMARY KEY,
+    size int NOT NULL,
+    addedTime int NOT NULL)''')
 conn.commit()
 
 if args.fileinfo:
-	c.execute('select addedTime, size, path from %s order by addedTime, path' % tableName)
-	filesInfo = c.fetchall()
-	if args.S:
-		filesInfo = sorted(filesInfo, key=lambda fileInfo: fileInfo[1])
-	print '%10s %8s %s' % ('added at', 'size', 'file name')
-	for addedTime, size, path in filesInfo:
-		print '%s %8s %s' % (datetime.datetime.fromtimestamp(addedTime).strftime('%Y-%m-%d'), sizeof_fmt(size), str(path))
+    c.execute('select addedTime, size, path from %s order by addedTime, path' % tableName)
+    filesInfo = c.fetchall()
+    if args.S:
+        filesInfo = sorted(filesInfo, key=lambda fileInfo: fileInfo[1])
+    print '%10s %8s %s' % ('added at', 'size', 'file name')
+    for addedTime, size, path in filesInfo:
+        print '%s %8s %s' % (datetime.datetime.fromtimestamp(addedTime).strftime('%Y-%m-%d'), sizeof_fmt(size), str(path))
 else:
-	# delete very old files
-	c.execute('select path from ' + tableName + ' where addedTime < ?', (currentTime - (maxDuration*86400),))
-	veryOldFiles = c.fetchall()
-	if len(veryOldFiles) > 0:
-		for row in veryOldFiles:
-			deletePath(trashPath + str(row[0]))
-		c.executemany('delete from ' + tableName + ' where path = ?', veryOldFiles)
-		conn.commit()
+    # delete very old files
+    c.execute('select path from ' + tableName + ' where addedTime < ?', (currentTime - (maxDuration*86400),))
+    veryOldFiles = c.fetchall()
+    if len(veryOldFiles) > 0:
+        for row in veryOldFiles:
+            deletePath(trashPath + str(row[0]))
+        c.executemany('delete from ' + tableName + ' where path = ?', veryOldFiles)
+        conn.commit()
 
-	# delete old files if the disk has low empty space
-	c.execute('select path, size from ' + tableName + ' where addedTime < ? order by addedTime', (currentTime - (minDuration*86400),))
-	oldFiles = c.fetchall()
-	if len(oldFiles) > 0:
-		stat = os.statvfs(trashPath)
-		emptySpace = stat.f_bavail * stat.f_frsize
-		c.execute('select sum(size) from ' + tableName)
-		trashSize = c.fetchone()[0]
-		deletedFiles = []
-		for filepath, filesize in oldFiles:
-			if emptySpace > trashSize:
-				break
-			deletePath(trashPath + str(filepath))
-			emptySpace += filesize
-			trashSize -= filesize
-			deletedFiles.append((filepath,))
-		if len(deletedFiles) > 0:
-			c.executemany('delete from ' + tableName + ' where path = ?', deletedFiles)
-			conn.commit()
+    # delete old files if the disk has low empty space
+    c.execute('select path, size from ' + tableName + ' where addedTime < ? order by addedTime', (currentTime - (minDuration*86400),))
+    oldFiles = c.fetchall()
+    if len(oldFiles) > 0:
+        stat = os.statvfs(trashPath)
+        emptySpace = stat.f_bavail * stat.f_frsize
+        c.execute('select sum(size) from ' + tableName)
+        trashSize = c.fetchone()[0]
+        deletedFiles = []
+        for filepath, filesize in oldFiles:
+            if emptySpace > trashSize:
+                break
+            deletePath(trashPath + str(filepath))
+            emptySpace += filesize
+            trashSize -= filesize
+            deletedFiles.append((filepath,))
+        if len(deletedFiles) > 0:
+            c.executemany('delete from ' + tableName + ' where path = ?', deletedFiles)
+            conn.commit()
 
-	# add new files
-	os.chdir(trashPath)
-	filesInTrash = set(glob.glob('.*') + glob.glob('*'))
-	filesInTrash.discard('.DS_Store')	# ignore the .DS_Store file for MacOS
-	filesInDB = set([])
-	for row in c.execute('select path from ' + tableName):
-		filesInDB.add(str(row[0]))
-	newFiles = filesInTrash - filesInDB
-	newFilesData = []
-	for filepath in newFiles:
-		filesize = pathSize(trashPath + filepath)
-		newFilesData.append((sqlite3.Binary(filepath), filesize, currentTime))
-	c.executemany('insert into ' + tableName + ' values (?,?,?)', newFilesData)
-	conn.commit()
+    # add new files
+    os.chdir(trashPath)
+    filesInTrash = set(glob.glob('.*') + glob.glob('*'))
+    filesInTrash.discard('.DS_Store') # ignore the .DS_Store file for MacOS
+    filesInDB = set([])
+    for row in c.execute('select path from ' + tableName):
+        filesInDB.add(str(row[0]))
+    newFiles = filesInTrash - filesInDB
+    newFilesData = []
+    for filepath in newFiles:
+        filesize = pathSize(trashPath + filepath)
+        newFilesData.append((sqlite3.Binary(filepath), filesize, currentTime))
+    c.executemany('insert into ' + tableName + ' values (?,?,?)', newFilesData)
+    conn.commit()
 
 conn.close()
