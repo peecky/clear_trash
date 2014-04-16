@@ -80,10 +80,12 @@ def main():
     conn.commit()
 
     if args.fileinfo:
-        c.execute('select addedTime, size, path from %s order by addedTime, path' % tableName)
-        filesInfo = c.fetchall()
         if args.S:
-            filesInfo = sorted(filesInfo, key=lambda fileInfo: fileInfo[1])
+            orderBy = 'size'
+        else:
+            orderBy = 'addedTime'
+        c.execute('select addedTime, size, path from %s order by %s, path' % (tableName, orderBy))
+        filesInfo = c.fetchall()
         print '%10s %8s %s' % ('added at', 'size', 'file name')
         for addedTime, size, path in filesInfo:
             print '%s %8s %s' % (datetime.datetime.fromtimestamp(addedTime).strftime('%Y-%m-%d'), sizeof_fmt(size), str(path))
