@@ -75,6 +75,7 @@ c.execute('create table if not exists ' + tableName +
     ''' (path BLOB NOT NULL PRIMARY KEY,
     size int NOT NULL,
     addedTime int NOT NULL)''')
+c.execute('create index if not exists addedTime_index on ' + tableName + ' (addedTime)')
 conn.commit()
 
 if args.fileinfo:
