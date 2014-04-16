@@ -5,7 +5,6 @@ import os
 import sqlite3
 import time
 import shutil
-import glob
 import argparse
 import datetime
 import sys
@@ -120,8 +119,7 @@ def main():
                 conn.commit()
 
         # add new files
-        os.chdir(trashPath)
-        filesInTrash = set(glob.glob('.*') + glob.glob('*'))
+        filesInTrash = set(os.listdir(trashPath));
         filesInTrash.discard('.DS_Store') # ignore the .DS_Store file for MacOS
         filesInDB = set([])
         for row in c.execute('select path from ' + tableName):
