@@ -16,7 +16,7 @@ This program requires Python 2.7.
 	<code>$ chmod +x ~/bin/clear_trash</code>
 
 ### Execute ###
-It is good to run this programe regularly to gain more accurate added times of files. I suggest to run it per every one hour. You can do this automatically by the cron.
+It is good to run this programe regularly to gain more accurate added times of files. I suggest to run it per every four hours. You can do this automatically by the cron.
 
 Execute the crontab at the terminal
 
@@ -24,7 +24,7 @@ Execute the crontab at the terminal
 
 Then add the following line to the cron
 
-	0 * * * * ~/bin/clear_trash
+	0 */4 * * * ~/bin/clear_trash
 
 Also, you can see the added times and sizes of the files in the Trash by following command
 	
