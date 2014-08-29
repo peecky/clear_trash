@@ -8,6 +8,8 @@ import shutil
 import argparse
 import datetime
 import sys
+import tempfile
+import random
 
 def deletePath(path):
     if os.path.islink(path) or os.path.isfile(path):
@@ -17,7 +19,11 @@ def deletePath(path):
             shutil.rmtree(path)
         except OSError, e:
             shutil.rmtree(path, True)
-            sys.stderr.write('Cannot delete %s\n' % (path,))
+            tempDir = os.path.join(tempfile.gettempdir(), 'clear_trash', str(random.randint(10000000, 99999999)))
+            if not os.path.exists(tempDir):
+                os.makedirs(tempDir)
+            os.rename(path, tempDir)
+            sys.stderr.write('Cannot delete %s. Move it to temp directory %s.\n' % (path, tempDir))
 
 def pathSize(path):
     if os.path.islink(path):
