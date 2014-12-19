@@ -44,12 +44,16 @@ def sizeof_fmt(num):
     return "%3.1f%s" % (num, 'TB')
 
 def main():
+    homePath = os.path.expanduser('~') + '/'
+    configFilePath = homePath + '.clear_trash.cfg'
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--fileinfo", help="show information of files in the Trash", action="store_true")
     parser.add_argument("-S", help="sort by file size when showing information of files", action="store_true")
+    parser.add_argument('--configfile', help='path of config file. (default: %s)' % (configFilePath,), default=configFilePath)
     args = parser.parse_args()
+    configFilePath = args.configfile
 
-    homePath = os.path.expanduser('~') + '/'
     tableName = 'clear_trash'
     currentTime = long(time.time())
 
@@ -60,7 +64,7 @@ def main():
         'maxDuration': '100',
         'dbFilePath': homePath + '.clear_trash.db'
     })
-    config.read(homePath + '.clear_trash.cfg')
+    config.read(configFilePath)
     trashPath = config.get('DEFAULT', 'trashPath')
     minDuration = config.getint('DEFAULT', 'minDuration')
     maxDuration = config.getint('DEFAULT', 'maxDuration')
