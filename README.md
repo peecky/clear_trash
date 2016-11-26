@@ -1,6 +1,7 @@
 clear\_trash
 ===========
-Automatically delete old files in the Trash folder, based on the added time of each file into the Trash. This programe is designed for Mac OS (more specifically for the Mountain Lion ~ Yosemite), but you can use it for other OS if you modify some settings, like the path of Trash folder.
+Automatically delete old files in the Trash folder, based on the added time of each file into the Trash. This programe is designed for Mac OS (more specifically for the Mountain Lion ~ El Capitan), but you can use it for other OS if you modify some settings, like the path of Trash folder.
+(If you use macOS Sierra (version 10.12) or higher, you'd better use built in functionality instead of using this program.)
 
 How it works
 ------------
